@@ -6,7 +6,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Parked">
-  <meta name="theme-color" content="#0a0a0f">
+  <meta name="theme-color" content="#000000">
   <title>Parked</title>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -19,10 +19,12 @@
   <div class="screen active" id="screen-home">
     <div class="screen-inner">
       <header class="header">
-        <span class="header-title">PARKED</span>
-        <button class="icon-btn" id="btn-history" aria-label="History">
-          <svg viewBox="0 0 24 24"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
-        </button>
+        <span class="header-title">Parked</span>
+        <div class="header-right">
+          <button class="icon-btn" id="btn-history" aria-label="History">
+            <svg viewBox="0 0 24 24"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
+          </button>
+        </div>
       </header>
 
       <div class="screen-body" id="home-body">
@@ -61,11 +63,13 @@
   <div class="screen" id="screen-log">
     <div class="screen-inner">
       <header class="header">
-        <button class="back-btn" id="btn-log-back">
-          <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
-          Back
-        </button>
-        <div></div>
+        <div class="header-left">
+          <button class="back-btn" id="btn-log-back">
+            <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+            Parked
+          </button>
+        </div>
+        <span class="header-title">Log Spot</span>
       </header>
 
       <div class="step-dots">
@@ -131,12 +135,13 @@
   <div class="screen" id="screen-history">
     <div class="screen-inner">
       <header class="header">
-        <button class="back-btn" id="btn-history-back">
-          <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
-          Back
-        </button>
-        <span class="header-title" style="font-size:20px;">History</span>
-        <div style="width:44px;"></div>
+        <div class="header-left">
+          <button class="back-btn" id="btn-history-back">
+            <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+            Parked
+          </button>
+        </div>
+        <span class="header-title">History</span>
       </header>
 
       <p class="history-hint" id="history-hint">Swipe left to delete</p>
