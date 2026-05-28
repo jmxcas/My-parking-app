@@ -203,17 +203,31 @@ const dotEls = [
   document.getElementById('dot-3'),
 ];
 
-const cameraInput      = document.getElementById('camera-input');
 const btnAddPhoto      = document.getElementById('btn-add-photo');
 const photoPreviewWrap = document.getElementById('photo-preview-wrap');
 const photoPreviewImg  = document.getElementById('photo-preview-img');
+
+function openCameraPicker(callback) {
+  const input = document.createElement('input');
+  input.type   = 'file';
+  input.accept = 'image/*';
+  // appended to body — display:none blocks the picker on iOS Safari
+  input.style.cssText = 'position:fixed;width:1px;height:1px;opacity:0;top:0;left:0;';
+  document.body.appendChild(input);
+  input.addEventListener('change', async () => {
+    const file = input.files[0];
+    document.body.removeChild(input);
+    if (!file) return;
+    callback(await compressImage(file));
+  });
+  input.click();
+}
 
 function resetLog() {
   logState = { direction: null, level: null, side: null, step: 1, photo: null };
   btnAddPhoto.classList.remove('hidden');
   photoPreviewWrap.classList.add('hidden');
   photoPreviewImg.src = '';
-  cameraInput.value = '';
   showStep(1);
 }
 
@@ -254,23 +268,20 @@ document.querySelectorAll('[data-side]').forEach(btn => {
 });
 
 // Camera
-btnAddPhoto.addEventListener('click', () => cameraInput.click());
-
-document.getElementById('btn-retake').addEventListener('click', () => {
-  logState.photo = null;
-  cameraInput.value = '';
-  cameraInput.click();
+btnAddPhoto.addEventListener('click', () => {
+  openCameraPicker(dataUrl => {
+    logState.photo = dataUrl;
+    photoPreviewImg.src = dataUrl;
+    btnAddPhoto.classList.add('hidden');
+    photoPreviewWrap.classList.remove('hidden');
+  });
 });
 
-cameraInput.addEventListener('change', async () => {
-  const file = cameraInput.files[0];
-  if (!file) return;
-  const dataUrl = await compressImage(file);
-  logState.photo = dataUrl;
-  photoPreviewImg.src = dataUrl;
-  btnAddPhoto.classList.add('hidden');
-  photoPreviewWrap.classList.remove('hidden');
-  cameraInput.value = '';
+document.getElementById('btn-retake').addEventListener('click', () => {
+  openCameraPicker(dataUrl => {
+    logState.photo = dataUrl;
+    photoPreviewImg.src = dataUrl;
+  });
 });
 
 document.getElementById('btn-save').addEventListener('click', () => {
