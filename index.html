@@ -49,6 +49,9 @@
               <span class="spot-side" id="card-side"></span>
             </div>
             <div class="spot-time" id="card-time"></div>
+            <div class="card-photo-wrap hidden" id="card-photo-wrap">
+              <img class="card-photo" id="card-photo" src="" alt="Spot photo">
+            </div>
           </div>
         </div>
       </div>
@@ -117,10 +120,30 @@
 
         <!-- Step 4: Confirm -->
         <div class="step-content" id="step-confirm">
-          <div class="confirm-display">
-            <p class="confirm-label">Your spot</p>
-            <p class="confirm-spot" id="confirm-text"></p>
+          <div class="confirm-main">
+            <div class="confirm-display">
+              <p class="confirm-label">Your spot</p>
+              <p class="confirm-spot" id="confirm-text"></p>
+            </div>
+
+            <div class="photo-section">
+              <button class="photo-add-btn" id="btn-add-photo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                  <circle cx="12" cy="13" r="4"/>
+                </svg>
+                <div>
+                  <span>Add Photo</span>
+                  <small>optional</small>
+                </div>
+              </button>
+              <div class="photo-preview-wrap hidden" id="photo-preview-wrap">
+                <img id="photo-preview-img" src="" alt="Your spot photo">
+                <button class="photo-retake-btn" id="btn-retake">Retake</button>
+              </div>
+            </div>
           </div>
+
           <div class="confirm-actions">
             <button class="btn-primary" id="btn-save">Save Spot</button>
             <button class="btn-secondary" id="btn-start-over">Start Over</button>
@@ -162,8 +185,19 @@
 
 </div>
 
+<!-- Photo viewer -->
+<div id="photo-viewer" class="photo-viewer">
+  <button id="photo-viewer-close" class="photo-viewer-close" aria-label="Close">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
+  <img id="photo-viewer-img" src="" alt="Spot photo">
+</div>
+
 <!-- Toast -->
 <div id="toast" role="status" aria-live="polite"></div>
+
+<!-- Hidden camera input -->
+<input type="file" accept="image/*" capture="environment" id="camera-input" style="display:none" aria-hidden="true">
 
 <script src="app.js"></script>
 </body>

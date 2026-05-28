@@ -426,13 +426,11 @@ html, body {
 
 /* confirm */
 .confirm-display {
-  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  padding-bottom: 40px;
 }
 
 .confirm-spot {
@@ -550,7 +548,6 @@ html, body {
 .history-time {
   font-size: 13px;
   color: var(--text-2);
-  flex-shrink: 0;
   text-align: right;
   line-height: 1.4;
 }
@@ -581,6 +578,180 @@ html, body {
   transform: translateX(-50%) translateY(0);
   opacity: 1;
 }
+
+/* ── Photo — confirm step ──────────────────────────────────── */
+.confirm-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 20px;
+  padding-bottom: 16px;
+}
+
+.confirm-display { text-align: center; }
+
+.photo-section { width: 100%; }
+
+.photo-add-btn {
+  width: 100%;
+  height: 96px;
+  background: var(--surface);
+  border: 1.5px dashed var(--surface3);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 150ms ease;
+  color: var(--text-2);
+}
+
+.photo-add-btn:active { opacity: 0.55; }
+
+.photo-add-btn svg {
+  width: 28px;
+  height: 28px;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.photo-add-btn span {
+  display: block;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--accent);
+}
+
+.photo-add-btn small {
+  display: block;
+  font-size: 12px;
+  color: var(--text-3);
+  margin-top: 2px;
+}
+
+.photo-preview-wrap {
+  position: relative;
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.photo-preview-wrap img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  display: block;
+}
+
+.photo-retake-btn {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.55);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  padding: 7px 14px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 150ms ease;
+}
+
+.photo-retake-btn:active { opacity: 0.6; }
+
+/* ── Photo — home card ─────────────────────────────────────── */
+.card-photo-wrap {
+  margin-top: 14px;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.card-photo {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  display: block;
+  cursor: pointer;
+}
+
+/* ── Photo — history thumbnail ─────────────────────────────── */
+.history-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.history-thumb {
+  width: 46px;
+  height: 46px;
+  border-radius: 8px;
+  object-fit: cover;
+  display: block;
+  cursor: pointer;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 150ms ease;
+}
+
+.history-thumb:active { opacity: 0.7; }
+
+/* ── Photo viewer ──────────────────────────────────────────── */
+.photo-viewer {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  z-index: 9998;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 250ms ease;
+}
+
+.photo-viewer.visible {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.photo-viewer img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.photo-viewer-close {
+  position: absolute;
+  top: calc(16px + var(--safe-top));
+  right: 16px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(58, 58, 60, 0.9);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border: none;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 1;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 150ms ease;
+}
+
+.photo-viewer-close:active { opacity: 0.6; }
+.photo-viewer-close svg { width: 16px; height: 16px; }
 
 /* ── Utility ───────────────────────────────────────────────── */
 .hidden { display: none !important; }

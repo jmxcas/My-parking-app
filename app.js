@@ -10,17 +10,25 @@ function saveEntries(entries) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
 }
 
-function addEntry(direction, level, side) {
+function addEntry(direction, level, side, photo) {
   const entries = loadEntries();
   const entry = {
     id: Date.now(),
     direction,
     level,
     side,
+    photo: photo || null,
     timestamp: new Date().toISOString()
   };
   entries.unshift(entry);
-  saveEntries(entries);
+  try {
+    saveEntries(entries);
+  } catch {
+    // localStorage quota hit — save without photo
+    entry.photo = null;
+    saveEntries(entries);
+    showToast('Storage full — saved without photo');
+  }
   return entry;
 }
 
@@ -32,10 +40,9 @@ function deleteEntry(id) {
 function formatTime(iso) {
   const d = new Date(iso);
   const now = new Date();
-  const diffMs = now - d;
-  const diffMins = Math.floor(diffMs / 60000);
+  const diffMins  = Math.floor((now - d) / 60000);
   const diffHours = Math.floor(diffMins / 60);
-  const diffDays = Math.floor(diffHours / 24);
+  const diffDays  = Math.floor(diffHours / 24);
 
   if (diffMins < 1)   return 'Just now';
   if (diffMins < 60)  return `${diffMins}m ago`;
@@ -45,6 +52,46 @@ function formatTime(iso) {
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) +
     ' · ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 }
+
+/* ── Image compression ────────────────────────────────────── */
+function compressImage(file) {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 900;
+        let w = img.width, h = img.height;
+        if (w > h && w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+        else if (h > MAX)     { w = Math.round(w * MAX / h); h = MAX; }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.72));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ── Photo viewer ─────────────────────────────────────────── */
+const photoViewer    = document.getElementById('photo-viewer');
+const photoViewerImg = document.getElementById('photo-viewer-img');
+
+function openPhotoViewer(src) {
+  photoViewerImg.src = src;
+  photoViewer.classList.add('visible');
+}
+
+function closePhotoViewer() {
+  photoViewer.classList.remove('visible');
+}
+
+document.getElementById('photo-viewer-close').addEventListener('click', closePhotoViewer);
+photoViewer.addEventListener('click', e => {
+  if (e.target === photoViewer || e.target === photoViewerImg) closePhotoViewer();
+});
 
 /* ── Screen management ────────────────────────────────────── */
 const screens = {
@@ -61,31 +108,23 @@ function navigate(to) {
 
   const fromEl = screens[from];
   const toEl   = screens[to];
-
   const goingBack = (to === 'home');
 
   if (goingBack) {
-    // slide current out to right, bring home in from left
     fromEl.classList.remove('active');
     fromEl.classList.add('slide-out');
     toEl.classList.remove('slide-out');
     toEl.classList.add('active');
-
-    fromEl.addEventListener('transitionend', function handler() {
-      fromEl.classList.remove('slide-out');
-      fromEl.removeEventListener('transitionend', handler);
-    });
   } else {
-    // slide home out to left, bring new screen in from right
     fromEl.classList.add('slide-out');
     fromEl.classList.remove('active');
     toEl.classList.add('active');
-
-    fromEl.addEventListener('transitionend', function handler() {
-      fromEl.classList.remove('slide-out');
-      fromEl.removeEventListener('transitionend', handler);
-    });
   }
+
+  fromEl.addEventListener('transitionend', function handler() {
+    fromEl.classList.remove('slide-out');
+    fromEl.removeEventListener('transitionend', handler);
+  });
 
   currentScreen = to;
 }
@@ -102,26 +141,39 @@ function showToast(msg) {
 }
 
 /* ── Home screen ──────────────────────────────────────────── */
-const homeEmpty = document.getElementById('home-empty');
-const homeCard  = document.getElementById('home-card');
+const homeEmpty     = document.getElementById('home-empty');
+const homeCard      = document.getElementById('home-card');
 const cardDirection = document.getElementById('card-direction');
 const cardLevel     = document.getElementById('card-level');
 const cardSide      = document.getElementById('card-side');
 const cardTime      = document.getElementById('card-time');
+const cardPhotoWrap = document.getElementById('card-photo-wrap');
+const cardPhotoImg  = document.getElementById('card-photo');
 
 function renderHome() {
   const entries = loadEntries();
   if (entries.length === 0) {
     homeEmpty.classList.remove('hidden');
     homeCard.classList.add('hidden');
+    return;
+  }
+
+  homeEmpty.classList.add('hidden');
+  homeCard.classList.remove('hidden');
+  const e = entries[0];
+  cardDirection.textContent = e.direction;
+  cardLevel.textContent     = `L${e.level}`;
+  cardSide.textContent      = e.side;
+  cardTime.textContent      = 'Logged ' + formatTime(e.timestamp);
+
+  if (e.photo) {
+    cardPhotoImg.src = e.photo;
+    cardPhotoImg.onclick = () => openPhotoViewer(e.photo);
+    cardPhotoWrap.classList.remove('hidden');
   } else {
-    homeEmpty.classList.add('hidden');
-    homeCard.classList.remove('hidden');
-    const e = entries[0];
-    cardDirection.textContent = e.direction;
-    cardLevel.textContent     = `L${e.level}`;
-    cardSide.textContent      = e.side;
-    cardTime.textContent      = 'Logged ' + formatTime(e.timestamp);
+    cardPhotoWrap.classList.add('hidden');
+    cardPhotoImg.src = '';
+    cardPhotoImg.onclick = null;
   }
 }
 
@@ -136,7 +188,7 @@ document.getElementById('btn-history').addEventListener('click', () => {
 });
 
 /* ── Log screen ───────────────────────────────────────────── */
-let logState = { direction: null, level: null, side: null, step: 1 };
+let logState = { direction: null, level: null, side: null, step: 1, photo: null };
 
 const stepEls = [
   document.getElementById('step-1'),
@@ -151,20 +203,27 @@ const dotEls = [
   document.getElementById('dot-3'),
 ];
 
+const cameraInput      = document.getElementById('camera-input');
+const btnAddPhoto      = document.getElementById('btn-add-photo');
+const photoPreviewWrap = document.getElementById('photo-preview-wrap');
+const photoPreviewImg  = document.getElementById('photo-preview-img');
+
 function resetLog() {
-  logState = { direction: null, level: null, side: null, step: 1 };
+  logState = { direction: null, level: null, side: null, step: 1, photo: null };
+  btnAddPhoto.classList.remove('hidden');
+  photoPreviewWrap.classList.add('hidden');
+  photoPreviewImg.src = '';
+  cameraInput.value = '';
   showStep(1);
 }
 
 function showStep(n) {
   logState.step = n;
-  stepEls.forEach((el, i) => {
-    el.classList.toggle('visible', i === n - 1);
-  });
+  stepEls.forEach((el, i) => el.classList.toggle('visible', i === n - 1));
   dotEls.forEach((dot, i) => {
     dot.classList.remove('active', 'done');
-    if (i + 1 === n)      dot.classList.add('active');
-    else if (i + 1 < n)   dot.classList.add('done');
+    if (i + 1 === n)    dot.classList.add('active');
+    else if (i + 1 < n) dot.classList.add('done');
   });
 }
 
@@ -188,28 +247,41 @@ document.querySelectorAll('[data-level]').forEach(btn => {
 document.querySelectorAll('[data-side]').forEach(btn => {
   btn.addEventListener('click', () => {
     logState.side = btn.dataset.side;
-    // show confirm
-    const confirmText = document.getElementById('confirm-text');
-    confirmText.innerHTML =
+    document.getElementById('confirm-text').innerHTML =
       `${logState.direction}<span> · </span>L${logState.level}<span> · </span>${logState.side}`;
     showStep(4);
   });
 });
 
+// Camera
+btnAddPhoto.addEventListener('click', () => cameraInput.click());
+
+document.getElementById('btn-retake').addEventListener('click', () => {
+  logState.photo = null;
+  cameraInput.value = '';
+  cameraInput.click();
+});
+
+cameraInput.addEventListener('change', async () => {
+  const file = cameraInput.files[0];
+  if (!file) return;
+  const dataUrl = await compressImage(file);
+  logState.photo = dataUrl;
+  photoPreviewImg.src = dataUrl;
+  btnAddPhoto.classList.add('hidden');
+  photoPreviewWrap.classList.remove('hidden');
+  cameraInput.value = '';
+});
+
 document.getElementById('btn-save').addEventListener('click', () => {
-  addEntry(logState.direction, logState.level, logState.side);
+  addEntry(logState.direction, logState.level, logState.side, logState.photo);
   renderHome();
   navigate('home');
   showToast('Spot saved');
 });
 
-document.getElementById('btn-start-over').addEventListener('click', () => {
-  resetLog();
-});
-
-document.getElementById('btn-log-back').addEventListener('click', () => {
-  navigate('home');
-});
+document.getElementById('btn-start-over').addEventListener('click', resetLog);
+document.getElementById('btn-log-back').addEventListener('click', () => navigate('home'));
 
 /* ── History screen ───────────────────────────────────────── */
 const historyList  = document.getElementById('history-list');
@@ -250,8 +322,22 @@ function renderHistory() {
         <span class="history-sep">·</span>
         <span class="history-level-side">${entry.side}</span>
       </div>
-      <div class="history-time">${formatTime(entry.timestamp)}</div>
+      <div class="history-right">
+        <div class="history-time">${formatTime(entry.timestamp)}</div>
+      </div>
     `;
+
+    if (entry.photo) {
+      const thumb = document.createElement('img');
+      thumb.className = 'history-thumb';
+      thumb.src = entry.photo;
+      thumb.alt = 'Spot photo';
+      thumb.addEventListener('click', e => {
+        e.stopPropagation();
+        openPhotoViewer(entry.photo);
+      });
+      card.querySelector('.history-right').prepend(thumb);
+    }
 
     wrapper.appendChild(bg);
     wrapper.appendChild(card);
@@ -262,17 +348,14 @@ function renderHistory() {
 }
 
 function attachSwipe(wrapper, card, bg, id) {
-  let startX = 0;
-  let startY = 0;
-  let dragging = false;
-  let verticalLock = false;
-  let currentX = 0;
+  let startX = 0, startY = 0;
+  let dragging = false, verticalLock = false, currentX = 0;
   const SNAP_THRESHOLD = 40;
   const SNAP_OPEN = 90;
 
   card.addEventListener('touchstart', e => {
-    startX   = e.touches[0].clientX;
-    startY   = e.touches[0].clientY;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
     dragging = false;
     verticalLock = false;
     currentX = card.classList.contains('is-swiped') ? -SNAP_OPEN : 0;
@@ -283,58 +366,33 @@ function attachSwipe(wrapper, card, bg, id) {
     const dy = e.touches[0].clientY - startY;
 
     if (!dragging && !verticalLock) {
-      if (Math.abs(dy) > Math.abs(dx) + 4) {
-        verticalLock = true;
-        return;
-      }
+      if (Math.abs(dy) > Math.abs(dx) + 4) { verticalLock = true; return; }
       if (Math.abs(dx) > 6) dragging = true;
     }
-
-    if (verticalLock) return;
-    if (!dragging) return;
+    if (verticalLock || !dragging) return;
 
     e.preventDefault();
-
     let targetX = currentX + dx;
-    // only allow swiping left (negative)
     if (targetX > 0) targetX = 0;
-    // rubber-band past snap open point
-    if (targetX < -SNAP_OPEN) {
-      const overscroll = (-targetX) - SNAP_OPEN;
-      targetX = -(SNAP_OPEN + overscroll * 0.25);
-    }
+    if (targetX < -SNAP_OPEN) targetX = -(SNAP_OPEN + ((-targetX) - SNAP_OPEN) * 0.25);
 
     card.style.transition = 'none';
-    card.style.transform = `translateX(${targetX}px)`;
+    card.style.transform  = `translateX(${targetX}px)`;
   }, { passive: false });
 
   card.addEventListener('touchend', e => {
     if (verticalLock) return;
-
-    const dx = e.changedTouches[0].clientX - startX;
-    const totalDrag = currentX + dx;
-
+    const totalDrag = currentX + (e.changedTouches[0].clientX - startX);
     card.style.transition = '';
     card.style.transform  = '';
-
-    if (totalDrag < -SNAP_THRESHOLD) {
-      openCard(card, wrapper);
-    } else {
-      closeCard(card);
-    }
+    totalDrag < -SNAP_THRESHOLD ? openCard(card) : closeCard(card);
   }, { passive: true });
 
-  // delete button tap
-  bg.addEventListener('click', () => {
-    performDelete(wrapper, id);
-  });
+  bg.addEventListener('click', () => performDelete(wrapper, id));
 }
 
-function openCard(card, wrapper) {
-  // close any other open card first
-  if (activeSwiped && activeSwiped !== card) {
-    closeCard(activeSwiped);
-  }
+function openCard(card) {
+  if (activeSwiped && activeSwiped !== card) closeCard(activeSwiped);
   card.classList.add('is-swiped');
   activeSwiped = card;
 }
@@ -352,8 +410,8 @@ function performDelete(wrapper, id) {
   wrapper.style.overflow   = 'hidden';
   wrapper.style.maxHeight  = wrapper.offsetHeight + 'px';
 
-  card.addEventListener('transitionend', function handler() {
-    card.removeEventListener('transitionend', handler);
+  card.addEventListener('transitionend', function h() {
+    card.removeEventListener('transitionend', h);
     wrapper.style.maxHeight    = '0';
     wrapper.style.opacity      = '0';
     wrapper.style.marginBottom = '0';
@@ -363,7 +421,6 @@ function performDelete(wrapper, id) {
       deleteEntry(id);
       renderHome();
       showToast('Entry deleted');
-
       if (historyList.children.length === 0) {
         historyEmpty.classList.remove('hidden');
         historyHint.classList.add('hidden');
@@ -372,24 +429,17 @@ function performDelete(wrapper, id) {
   });
 }
 
-// tap outside swiped card closes it
 document.getElementById('screen-history').addEventListener('touchstart', e => {
   if (!activeSwiped) return;
   const wrapper = activeSwiped.closest('.history-item-wrapper');
-  if (wrapper && !wrapper.contains(e.target)) {
-    closeCard(activeSwiped);
-  }
+  if (wrapper && !wrapper.contains(e.target)) closeCard(activeSwiped);
 }, { passive: true });
 
-document.getElementById('btn-history-back').addEventListener('click', () => {
-  navigate('home');
-});
+document.getElementById('btn-history-back').addEventListener('click', () => navigate('home'));
 
 /* ── Init ─────────────────────────────────────────────────── */
 renderHome();
 
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
-  });
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 }
